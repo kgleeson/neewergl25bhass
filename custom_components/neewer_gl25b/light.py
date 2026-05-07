@@ -49,7 +49,7 @@ class NeewerGL25BLight(LightEntity):
     _attr_min_color_temp_kelvin = MIN_COLOR_TEMP_KELVIN
     _attr_max_color_temp_kelvin = MAX_COLOR_TEMP_KELVIN
     _attr_assumed_state = True
-    _attr_should_poll = True
+    _attr_should_poll = False
 
     def __init__(
         self,
@@ -72,11 +72,10 @@ class NeewerGL25BLight(LightEntity):
             name=DEFAULT_NAME,
         )
 
-    async def async_update(self) -> None:
-        """Refresh dongle availability."""
-        self._attr_available = await self.hass.async_add_executor_job(
-            self._controller.is_available
-        )
+    async def async_added_to_hass(self) -> None:
+        """Open the HID device when the entity is added."""
+        available = await self.hass.async_add_executor_job(self._controller.connect)
+        self._attr_available = available
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the light and apply requested state."""
