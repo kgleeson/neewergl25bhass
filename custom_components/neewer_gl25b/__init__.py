@@ -25,6 +25,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        controller: NeewerGL25BController = hass.data[DOMAIN].pop(entry.entry_id)
+        await hass.async_add_executor_job(controller.disconnect)
 
     return unload_ok

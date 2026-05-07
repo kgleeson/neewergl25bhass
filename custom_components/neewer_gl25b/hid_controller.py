@@ -34,29 +34,49 @@ class NeewerGL25BError(Exception):
 
 
 class NeewerGL25BController:
-    """Synchronous controller for the official Neewer GL25B USB HID dongle."""
+    """Synchronous controller for the official Neewer GL25B USB HID dongle.
 
-    def is_available(self) -> bool:
-        """Return true if the dongle can be opened."""
+    Keeps the HID device open for the lifetime of the integration to avoid
+    USB re-enumeration on every command (which causes udev initialisation failures).
+    """
+
+    def __init__(self) -> None:
+        """Initialise without opening the device."""
+        self._dev: Any | None = None
+
+    def connect(self) -> bool:
+        """Open the HID device. Returns True on success."""
         if hid is None:
             _LOGGER.error("hidapi is not installed")
             return False
 
-        dev: Any | None = None
+        if self._dev is not None:
+            return True
+
         try:
             dev = hid.device()
             dev.open(VID, PID)
-        except Exception as err:  # noqa: BLE001 - hidapi can raise backend-specific errors.
-            _LOGGER.debug("Neewer GL25B dongle is not available: %s", err)
+            self._dev = dev
+            _LOGGER.debug("Neewer GL25B dongle connected")
+            return True
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Neewer GL25B dongle not available: %s", err)
+            self._dev = None
             return False
-        finally:
-            if dev is not None:
-                try:
-                    dev.close()
-                except Exception:  # noqa: BLE001
-                    _LOGGER.debug("Failed to close Neewer GL25B HID device", exc_info=True)
 
-        return True
+    def disconnect(self) -> None:
+        """Close the HID device."""
+        if self._dev is not None:
+            try:
+                self._dev.close()
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug("Failed to close Neewer GL25B HID device", exc_info=True)
+            finally:
+                self._dev = None
+
+    def is_connected(self) -> bool:
+        """Return True if the device is currently open."""
+        return self._dev is not None
 
     def send_command(self, command: bytes) -> None:
         """Send a command body to the dongle as one 64-byte output report."""
@@ -71,11 +91,12 @@ class NeewerGL25BController:
 
         packet = packet.ljust(PACKET_LENGTH, b"\x00")
 
-        dev: Any | None = None
+        # Reconnect if the device was lost (e.g. unplugged and re-plugged).
+        if self._dev is None and not self.connect():
+            raise NeewerGL25BError("Neewer GL25B dongle is not available")
+
         try:
-            dev = hid.device()
-            dev.open(VID, PID)
-            written = dev.write(packet)
+            written = self._dev.write(packet)  # type: ignore[union-attr]
             if written is not None and written < 0:
                 raise NeewerGL25BError("hidapi reported a failed write")
             time.sleep(WRITE_DELAY_SECONDS)
@@ -83,13 +104,9 @@ class NeewerGL25BController:
             raise
         except Exception as err:  # noqa: BLE001 - hidapi can raise backend-specific errors.
             _LOGGER.error("Failed to write to Neewer GL25B dongle: %s", err)
+            # Device may have been unplugged; drop the handle so the next call reconnects.
+            self.disconnect()
             raise NeewerGL25BError("Neewer GL25B dongle is not available") from err
-        finally:
-            if dev is not None:
-                try:
-                    dev.close()
-                except Exception:  # noqa: BLE001
-                    _LOGGER.debug("Failed to close Neewer GL25B HID device", exc_info=True)
 
     def set_brightness(self, percent: int) -> None:
         """Set GL25B brightness in the 0-100 percent range."""
