@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Neewer GL25B",
+        "description": "Set up the Neewer GL25B USB HID dongle. The dongle must be connected and accessible to Home Assistant.",
+        "data": {
+          "name": "Name"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Cannot open the Neewer GL25B USB HID dongle. Check that it is connected and that Home Assistant has permission to access it.",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Neewer GL25B is already configured"
+    }
+  }
+}

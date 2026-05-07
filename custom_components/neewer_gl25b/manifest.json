@@ -1,0 +1,12 @@
+{
+  "domain": "neewer_gl25b",
+  "name": "Neewer GL25B",
+  "version": "0.1.0",
+  "documentation": "https://github.com/your-github-username/neewer_gl25b",
+  "issue_tracker": "https://github.com/your-github-username/neewer_gl25b/issues",
+  "codeowners": ["@your-github-username"],
+  "config_flow": true,
+  "requirements": ["hidapi==0.15.0"],
+  "integration_type": "device",
+  "iot_class": "local_polling"
+}

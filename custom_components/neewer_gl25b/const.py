@@ -1,0 +1,12 @@
+"""Constants for the Neewer GL25B integration."""
+
+DOMAIN = "neewer_gl25b"
+
+CONF_NAME = "name"
+DEFAULT_NAME = "Neewer GL25B"
+
+DEFAULT_BRIGHTNESS = 128
+DEFAULT_COLOR_TEMP_KELVIN = 4400
+
+MIN_COLOR_TEMP_KELVIN = 2900
+MAX_COLOR_TEMP_KELVIN = 7000
