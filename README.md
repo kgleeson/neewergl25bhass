@@ -29,6 +29,8 @@ No true discrete hardware on/off command is currently known. The integration han
 
 State is assumed because the dongle/light does not provide known readable state feedback.
 
+Only one GL25B can be configured per Home Assistant instance. The integration uses the USB VID/PID as the unique device ID, which is the same for every GL25B dongle. Attempting to add a second dongle will be silently blocked. To replace a dongle, delete the existing config entry first and re-add it.
+
 ## Installation Through HACS
 
 1. In HACS, add this repository as a custom repository.
