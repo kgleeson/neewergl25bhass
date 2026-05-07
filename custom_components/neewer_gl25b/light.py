@@ -38,7 +38,7 @@ async def async_setup_entry(
     """Set up the Neewer GL25B light entity."""
     controller: NeewerGL25BController = hass.data[DOMAIN][entry.entry_id]
     name = entry.data.get(CONF_NAME, DEFAULT_NAME)
-    async_add_entities([NeewerGL25BLight(hass, controller, name)])
+    async_add_entities([NeewerGL25BLight(controller, name)])
 
 
 class NeewerGL25BLight(LightEntity):
@@ -53,12 +53,10 @@ class NeewerGL25BLight(LightEntity):
 
     def __init__(
         self,
-        hass: HomeAssistant,
         controller: NeewerGL25BController,
         name: str,
     ) -> None:
         """Initialize the Neewer GL25B light."""
-        self.hass = hass
         self._controller = controller
 
         self._attr_name = name
