@@ -6,21 +6,40 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import pathlib
+import sys
 from types import ModuleType
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
-CONTROLLER_PATH = REPO_ROOT / "custom_components" / "neewer_gl25b" / "hid_controller.py"
+PACKAGE_DIR = REPO_ROOT / "custom_components" / "neewer_gl25b"
 
 
 def load_controller_module() -> ModuleType:
     """Load hid_controller.py without importing the Home Assistant package."""
-    spec = importlib.util.spec_from_file_location("neewer_gl25b_hid_controller", CONTROLLER_PATH)
-    if spec is None or spec.loader is None:
-        raise RuntimeError(f"Cannot load controller module from {CONTROLLER_PATH}")
+    # Register a minimal stand-in package so `from .const import ...` resolves
+    # without executing the real __init__.py (which depends on Home Assistant).
+    package_name = "neewer_gl25b_standalone"
+    package = ModuleType(package_name)
+    package.__path__ = [str(PACKAGE_DIR)]
+    sys.modules[package_name] = package
 
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
+    const_spec = importlib.util.spec_from_file_location(
+        f"{package_name}.const", PACKAGE_DIR / "const.py"
+    )
+    if const_spec is None or const_spec.loader is None:
+        raise RuntimeError("Cannot load const module")
+    const_module = importlib.util.module_from_spec(const_spec)
+    sys.modules[const_spec.name] = const_module
+    const_spec.loader.exec_module(const_module)
+
+    controller_spec = importlib.util.spec_from_file_location(
+        f"{package_name}.hid_controller", PACKAGE_DIR / "hid_controller.py"
+    )
+    if controller_spec is None or controller_spec.loader is None:
+        raise RuntimeError("Cannot load hid_controller module")
+    controller_module = importlib.util.module_from_spec(controller_spec)
+    sys.modules[controller_spec.name] = controller_module
+    controller_spec.loader.exec_module(controller_module)
+    return controller_module
 
 
 def main() -> int:
@@ -47,12 +66,15 @@ def main() -> int:
     args = parser.parse_args()
     controller = controller_module.NeewerGL25BController()
 
-    if args.command == "toggle":
-        controller.toggle()
-    elif args.command == "brightness":
-        controller.set_brightness(args.percent)
-    elif args.command == "temp":
-        controller.set_kelvin(args.kelvin)
+    try:
+        if args.command == "toggle":
+            controller.toggle()
+        elif args.command == "brightness":
+            controller.set_brightness(args.percent)
+        elif args.command == "temp":
+            controller.set_kelvin(args.kelvin)
+    finally:
+        controller.disconnect()
 
     return 0
 

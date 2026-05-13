@@ -10,6 +10,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers.service_info.usb import UsbServiceInfo
 
 from .const import CONF_NAME, DEFAULT_NAME, DOMAIN
 from .hid_controller import PID, VID, NeewerGL25BController
@@ -38,6 +39,15 @@ class NeewerGL25BConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Neewer GL25B."""
 
     VERSION = 1
+
+    async def async_step_usb(
+        self, discovery_info: UsbServiceInfo
+    ) -> config_entries.ConfigFlowResult:
+        """Handle USB discovery of the GL25B dongle."""
+        await self.async_set_unique_id(f"{VID:04x}:{PID:04x}")
+        self._abort_if_unique_id_configured()
+        self.context["title_placeholders"] = {"name": DEFAULT_NAME}
+        return await self.async_step_user()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
