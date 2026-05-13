@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
 from homeassistant.components.light import (
@@ -15,6 +16,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_time_interval
 
 from .const import (
     CONF_NAME,
@@ -22,12 +24,14 @@ from .const import (
     DEFAULT_COLOR_TEMP_KELVIN,
     DEFAULT_NAME,
     DOMAIN,
-    MAX_COLOR_TEMP_KELVIN,
-    MIN_COLOR_TEMP_KELVIN,
+    MAX_KELVIN,
+    MIN_KELVIN,
 )
 from .hid_controller import PID, VID, NeewerGL25BController, NeewerGL25BError
 
 _LOGGER = logging.getLogger(__name__)
+
+RECONNECT_INTERVAL = timedelta(seconds=30)
 
 
 async def async_setup_entry(
@@ -46,8 +50,8 @@ class NeewerGL25BLight(LightEntity):
 
     _attr_supported_color_modes = {ColorMode.COLOR_TEMP}
     _attr_color_mode = ColorMode.COLOR_TEMP
-    _attr_min_color_temp_kelvin = MIN_COLOR_TEMP_KELVIN
-    _attr_max_color_temp_kelvin = MAX_COLOR_TEMP_KELVIN
+    _attr_min_color_temp_kelvin = MIN_KELVIN
+    _attr_max_color_temp_kelvin = MAX_KELVIN
     _attr_assumed_state = True
     _attr_should_poll = False
 
@@ -78,6 +82,21 @@ class NeewerGL25BLight(LightEntity):
         self._attr_available = available
         self.async_write_ha_state()
 
+        self.async_on_remove(
+            async_track_time_interval(
+                self.hass, self._async_check_availability, RECONNECT_INTERVAL
+            )
+        )
+
+    async def _async_check_availability(self, _now: Any) -> None:
+        """Reconnect on a timer if the dongle is currently unavailable."""
+        if self._attr_available:
+            return
+        available = await self.hass.async_add_executor_job(self._controller.connect)
+        if available != self._attr_available:
+            self._attr_available = available
+            self.async_write_ha_state()
+
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the light and apply requested state."""
         requested_brightness = kwargs.get(ATTR_BRIGHTNESS)
@@ -96,7 +115,7 @@ class NeewerGL25BLight(LightEntity):
             else self._attr_color_temp_kelvin
         )
         target_kelvin = max(
-            MIN_COLOR_TEMP_KELVIN, min(MAX_COLOR_TEMP_KELVIN, int(target_kelvin))
+            MIN_KELVIN, min(MAX_KELVIN, int(target_kelvin))
         )
 
         try:

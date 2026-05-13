@@ -29,6 +29,8 @@ No true discrete hardware on/off command is currently known. The integration han
 
 State is assumed because the dongle/light does not provide known readable state feedback.
 
+Color temperature is set in 100K steps. The integration accepts any Kelvin value in the supported range and rounds down to the nearest 100K when sending to the device (e.g. 5650K is sent as 5600K), because the dongle's packet format only carries `kelvin / 100`.
+
 Only one GL25B can be configured per Home Assistant instance. The integration uses the USB VID/PID as the unique device ID, which is the same for every GL25B dongle. Attempting to add a second dongle will be silently blocked. To replace a dongle, delete the existing config entry first and re-add it.
 
 ## Installation Through HACS

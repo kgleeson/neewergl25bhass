@@ -6,6 +6,8 @@ import logging
 import time
 from typing import Any
 
+from .const import MAX_KELVIN, MIN_KELVIN
+
 try:
     import hid
 except (
@@ -27,8 +29,6 @@ TOGGLE_COMMAND = bytes.fromhex("77 58 01 85 01 56")
 
 MIN_BRIGHTNESS_PERCENT = 0
 MAX_BRIGHTNESS_PERCENT = 100
-MIN_KELVIN = 2900
-MAX_KELVIN = 7000
 
 
 class NeewerGL25BError(Exception):
