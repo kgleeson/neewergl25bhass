@@ -26,10 +26,12 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 async def validate_input(hass: HomeAssistant) -> None:
     """Validate that the Neewer GL25B dongle can be opened."""
     controller = NeewerGL25BController()
-    available = await hass.async_add_executor_job(controller.is_available)
-
-    if not available:
-        raise CannotConnect
+    try:
+        available = await hass.async_add_executor_job(controller.connect)
+        if not available:
+            raise CannotConnect
+    finally:
+        await hass.async_add_executor_job(controller.disconnect)
 
 
 class NeewerGL25BConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):

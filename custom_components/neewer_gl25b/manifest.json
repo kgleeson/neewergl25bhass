@@ -4,9 +4,13 @@
   "version": "0.1.0",
   "documentation": "https://github.com/kgleeson/neewergl25bhass",
   "issue_tracker": "https://github.com/kgleeson/neewergl25bhass/issues",
-  "codeowners": ["@kgleeson"],
+  "codeowners": [
+    "@kgleeson"
+  ],
   "config_flow": true,
-  "requirements": ["hidapi==0.15.0"],
+  "requirements": [
+    "hidapi==0.15.0"
+  ],
   "homeassistant": "2022.7.0",
   "integration_type": "device",
   "iot_class": "local_polling"

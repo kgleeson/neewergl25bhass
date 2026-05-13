@@ -8,7 +8,9 @@ from typing import Any
 
 try:
     import hid
-except ImportError:  # pragma: no cover - Home Assistant installs this from manifest.json.
+except (
+    ImportError
+):  # pragma: no cover - Home Assistant installs this from manifest.json.
     hid = None  # type: ignore[assignment]
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,13 +56,24 @@ class NeewerGL25BController:
             return True
 
         try:
+            # open_path() is reliable on Linux/hidraw where open(vid, pid) often fails
+            # even though hid.enumerate() can see the device.
+            matches = hid.enumerate(VID, PID)
+            if not matches:
+                _LOGGER.warning(
+                    "Neewer GL25B dongle (%04x:%04x) not found by hid.enumerate()",
+                    VID,
+                    PID,
+                )
+                return False
+
             dev = hid.device()
-            dev.open(VID, PID)
+            dev.open_path(matches[0]["path"])
             self._dev = dev
-            _LOGGER.debug("Neewer GL25B dongle connected")
+            _LOGGER.info("Neewer GL25B dongle connected at %s", matches[0]["path"])
             return True
         except Exception as err:  # noqa: BLE001
-            _LOGGER.debug("Neewer GL25B dongle not available: %s", err)
+            _LOGGER.warning("Neewer GL25B dongle not available: %s", err)
             self._dev = None
             return False
 
@@ -97,6 +110,9 @@ class NeewerGL25BController:
 
         try:
             written = self._dev.write(packet)  # type: ignore[union-attr]
+            _LOGGER.debug(
+                "Wrote %s bytes to Neewer GL25B: %s", written, packet[:13].hex()
+            )
             if written is not None and written < 0:
                 raise NeewerGL25BError("hidapi reported a failed write")
             time.sleep(WRITE_DELAY_SECONDS)

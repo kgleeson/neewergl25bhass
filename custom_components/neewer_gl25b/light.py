@@ -76,6 +76,7 @@ class NeewerGL25BLight(LightEntity):
         """Open the HID device when the entity is added."""
         available = await self.hass.async_add_executor_job(self._controller.connect)
         self._attr_available = available
+        self.async_write_ha_state()
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the light and apply requested state."""
@@ -99,7 +100,10 @@ class NeewerGL25BLight(LightEntity):
         )
 
         try:
-            if requested_kelvin is not None and target_kelvin != self._attr_color_temp_kelvin:
+            if (
+                requested_kelvin is not None
+                and target_kelvin != self._attr_color_temp_kelvin
+            ):
                 await self.hass.async_add_executor_job(
                     self._controller.set_kelvin, target_kelvin
                 )
